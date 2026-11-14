@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pemeriksaan Peralatan Stasiun Oli Kiln / 稀油站设备检查记录</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Custom Radio Button styling for check/cross */
+        .radio-normal:checked + label { background-color: #dcfce7; border-color: #22c55e; color: #166534; }
+        .radio-abnormal:checked + label { background-color: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-blue-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <img src="1000709605.png" alt="Logo SMI" id="secret-trigger" class="h-12 w-auto bg-white rounded p-1 object-contain cursor-default select-none">
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-tight">Pemeriksaan Stasiun Oli Kiln</h1>
+                    <h2 class="text-sm text-blue-200">稀油站设备检查记录</h2>
+                </div>
+            </div>
+            <div id="auth-status" class="text-xs font-medium bg-blue-900 px-3 py-1.5 rounded-full animate-pulse border border-blue-700 text-center">
+                Menghubungkan Database...<br><span class="text-[10px]">连接数据库中...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+        
+        <!-- Status Waktu Banner -->
+        <div id="time-banner" class="mb-6 rounded-xl shadow-sm border p-4 flex items-center transition-colors duration-300 bg-white border-slate-200">
+            <div id="time-icon" class="mr-3 flex-shrink-0">
+                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-grow">
+                <h3 id="time-title" class="text-sm font-bold text-slate-700">Memeriksa Jam Komputer... / 检查时间中...</h3>
+                <p id="time-desc" class="text-xs mt-1 text-slate-500">Form akan aktif pada jadwal pemeriksaan. / 表单将在检查时间段内激活</p>
+            </div>
+            <div class="text-right ml-4">
+                <div id="current-time-display" class="text-xl font-mono font-bold text-slate-800">00:00:00</div>
+                <div class="text-xs text-slate-500">Waktu Saat Ini / 当前时间</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- FORM SECTION -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    
+                    <!-- Overlay Kunci Form -->
+                    <div id="form-overlay" class="absolute inset-0 bg-slate-100/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center transition-opacity duration-300">
+                        <div class="bg-white p-4 rounded-lg shadow-md border border-red-100 text-center max-w-[80%]">
+                            <svg class="w-10 h-10 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            <h4 class="font-bold text-slate-800 text-sm">Form Terkunci / 表单已锁定</h4>
+                            <p class="text-xs text-slate-500 mt-1">Saat ini di luar jam pemeriksaan. Silahkan tunggu jadwal berikutnya.<br>当前不在检查时间段内，请等待下一个时间段。</p>
+                        </div>
+                    </div>
+
+                    <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            Input Ceklis / 填写检查表
+                        </h2>
+                    </div>
+
+                    <form id="inspection-form" class="p-5 space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Area / 区域 *</label>
+                                <select id="area" required class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Kiln 1#">Kiln 1#</option>
+                                    <option value="Kiln 2#">Kiln 2#</option>
+                                    <option value="Kiln 3#">Kiln 3#</option>
+                                    <option value="Kiln 4#">Kiln 4#</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tim / 班组 *</label>
+                                <select id="shift" required class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Shift A甲">Shift A甲</option>
+                                    <option value="Shift B乙">Shift B乙</option>
+                                    <option value="Shift C丙">Shift C丙</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Petugas / 人员 *</label>
+                                <input type="text" id="petugas" required class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Nama">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-2 border-b pb-1">Parameter Pemeriksaan / 检查参数</label>
+                            <div class="space-y-3" id="parameters-container">
+                                <!-- Parameter items akan digenerate via JS -->
+                            </div>
+                        </div>
+
+                        <!-- BAGIAN UPLOAD FOTO (IMGBB) -->
+                        <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                            <label class="block text-xs font-bold text-blue-800 mb-2 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Bukti Foto Langsung / 现场照片 *
+                            </label>
+                            <input type="file" id="foto-bukti" accept="image/*" capture="environment" required class="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                            <p class="text-[10px] text-blue-600 mt-2 font-medium">Harus foto langsung menggunakan kamera (tidak bisa dari galeri). / 必须使用相机直接拍摄设备照片作为凭证。</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan / 备注 (Opsional / 选填)</label>
+                            <textarea id="keterangan" rows="2" class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none" placeholder="Isi jika ada temuan abnormal / 如有异常请填写..."></textarea>
+                        </div>
+
+                        <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition-colors flex justify-center items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <span>Simpan / 保存记录</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TABLE SECTION -->
+            <div class="lg:col-span-8">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
+                    <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Rekap Data / 汇总记录
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-1">Pilih tanggal untuk melihat arsip / 选择日期查看历史数据</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                            <!-- INPUT DATE PICKER LANGSUNG DI TABEL -->
+                            <input type="date" id="table-date-picker" class="text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-colors text-slate-700 bg-white font-medium cursor-pointer shadow-sm">
+                            
+                            <button id="export-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export CSV / 导出CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow p-0 relative min-h-[400px]">
+                        <div class="table-container overflow-x-auto overflow-y-auto h-full absolute inset-0">
+                            <table class="w-full text-left border-collapse whitespace-nowrap min-w-[850px]">
+                                <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+                                    <tr>
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase w-20">Waktu<br><span class="text-[10px] text-slate-500">时间</span></th>
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase w-32">Info Pelapor<br><span class="text-[10px] text-slate-500">报告信息</span></th>
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase">Status Parameter<br><span class="text-[10px] text-slate-500">参数状态</span></th>
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase w-24">Foto<br><span class="text-[10px] text-slate-500">照片</span></th>
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase">Keterangan<br><span class="text-[10px] text-slate-500">备注</span></th>
+                                        <!-- KOLOM AKSI (DISAMBUNYIKAN SECARA DEFAULT, MUNCUL SAAT ADMIN MODE) -->
+                                        <th id="col-aksi-header" class="hidden py-3 px-4 text-xs font-bold text-indigo-600 uppercase w-32 text-center">Aksi<br><span class="text-[10px] text-indigo-500">操作</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                                    <tr>
+                                        <td colspan="6" class="py-12 text-center text-slate-400">
+                                            <svg class="animate-spin h-8 w-8 mx-auto mb-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            Memuat data / 加载数据中...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Script Utama -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // API KEY IMGBB 
+        // ==========================================
+        const IMGBB_API_KEY = "1cf0e124a2fddb7f011791dd1fe9b1a6"; 
+
+        // Global Environment Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'oli-kiln-app';
+        const defaultFirebaseConfig = {
+            apiKey: "AIzaSyCqoUMlVnBUy2G1vyX2RaRQY3pCoNKMFmg",
+            authDomain: "rotary-kiln-smi.firebaseapp.com",
+            projectId: "rotary-kiln-smi",
+            messagingSenderId: "703690476159",
+            appId: "1:703690476159:web:8e4de095f0c8b24996cd4a",
+            measurementId: "G-6G7RWTKBDF"
+        };
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultFirebaseConfig;
+        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Inisialisasi Firebase (Hanya Auth & Firestore)
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Konfigurasi Parameter Bilingual
+        const PARAMETERS = [
+            { id: 'bocor_oli', label: 'Kebocoran/Luapan Oli (泄漏/油溢出)' },
+            { id: 'level_oli', label: 'Level Oli (油位)' },
+            { id: 'tekanan_air', label: 'Tekanan Aliran Air (水流压力)' },
+            { id: 'tekanan_oli', label: 'Tekanan Aliran Oli (油流压力)' },
+            { id: 'suhu_gear', label: 'Suhu Gear Box (减速机稀油站温度)' },
+            { id: 'suara_gear', label: 'Suara Gear Box (减速机稀油站声音)' },
+            { id: 'genangan_air', label: 'Genangan Air (积水)' },
+            { id: 'kebersihan', label: 'Kebersihan Peralatan (设备清洁)' }
+        ];
+
+        // Rentang Waktu Pemeriksaan (HH:MM format)
+        const SCHEDULE_WINDOWS = [
+            { start: '08:00', end: '09:00' }, { start: '14:00', end: '15:00' }, 
+            { start: '16:00', end: '17:00' }, { start: '22:00', end: '23:00' },
+            { start: '00:00', end: '01:00' }, { start: '06:00', end: '07:00' }
+        ];
+
+        let currentUser = null;
+        let allRecordsData = []; // Simpan semua data dari database
+        let filteredData = []; // Data yang sedang ditampilkan di tabel
+        let isWindowOpen = false;
+        let isAdminUnlocked = false; 
+
+        // Referensi Elemen DOM
+        const form = document.getElementById('inspection-form');
+        const formOverlay = document.getElementById('form-overlay');
+        const submitBtn = document.getElementById('submit-btn');
+        const parametersContainer = document.getElementById('parameters-container');
+        const tableBody = document.getElementById('table-body');
+        const timeBanner = document.getElementById('time-banner');
+        const timeIcon = document.getElementById('time-icon');
+        const timeTitle = document.getElementById('time-title');
+        const timeDesc = document.getElementById('time-desc');
+        const currentTimeDisplay = document.getElementById('current-time-display');
+        const exportBtn = document.getElementById('export-btn');
+        const fotoInput = document.getElementById('foto-bukti');
+        const secretTrigger = document.getElementById('secret-trigger');
+        const datePicker = document.getElementById('table-date-picker');
+        const colAksiHeader = document.getElementById('col-aksi-header');
+
+        // Setup Date Picker Default (Hari ini)
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        datePicker.value = `${yyyy}-${mm}-${dd}`;
+
+        // Event Listener untuk memfilter data setiap kali tanggal diubah
+        datePicker.addEventListener('change', () => {
+            filterDataByDate(datePicker.value);
+        });
+
+        // Logic Admin Override (Secret Easter Egg)
+        let clickCount = 0;
+        let clickTimer = null;
+        
+        secretTrigger.addEventListener('click', () => {
+            clickCount++;
+            clearTimeout(clickTimer);
+            
+            if (clickCount >= 5) {
+                clickCount = 0;
+                promptAdminPassword();
+            } else {
+                clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+            }
+        });
+
+        async function promptAdminPassword() {
+            if (isAdminUnlocked) {
+                isAdminUnlocked = false;
+                colAksiHeader.classList.add('hidden'); // Sembunyikan kolom aksi
+                renderTable(); // Re-render tabel tanpa tombol aksi
+                Swal.fire({ title: 'Admin Mode Nonaktif', text: 'Form kembali mengikuti jadwal normal.', icon: 'info', timer: 2000, showConfirmButton: false });
+                checkTime();
+                return;
+            }
+
+            const { value: password } = await Swal.fire({
+                title: 'Buka Kunci Form & Mode Edit (Admin)',
+                input: 'password',
+                inputPlaceholder: 'Masukkan password admin',
+                showCancelButton: true,
+                confirmButtonText: 'Buka Akses',
+                cancelButtonText: 'Batal'
+            });
+
+            if (password === 'admin123') {
+                isAdminUnlocked = true;
+                colAksiHeader.classList.remove('hidden'); // Munculkan kolom aksi
+                renderTable(); // Re-render tabel dengan tombol aksi
+                Swal.fire({ title: 'Akses Dibuka!', text: 'Form dibuka paksa & fitur edit/hapus diaktifkan.', icon: 'success', timer: 2000, showConfirmButton: false });
+                checkTime();
+            } else if (password) {
+                Swal.fire('Gagal', 'Password salah!', 'error');
+            }
+        }
+
+        function renderParameters() {
+            parametersContainer.innerHTML = PARAMETERS.map(param => `
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm hover:border-blue-200 transition-colors gap-2">
+                    <span class="text-xs font-medium text-slate-700 leading-tight">
+                        ${param.label.split(' (')[0]} <br class="hidden xl:block"><span class="text-slate-500 font-normal">(${param.label.split('(')[1]}</span>
+                    </span>
+                    <div class="flex gap-2 shrink-0">
+                        <div class="relative">
+                            <input type="radio" id="${param.id}_normal" name="${param.id}" value="Normal" class="peer hidden radio-normal" checked required>
+                            <label for="${param.id}_normal" class="cursor-pointer border border-slate-300 text-slate-500 rounded px-2 py-1 text-[11px] font-semibold flex items-center gap-1 transition-all select-none">
+                                √ Normal / 正常
+                            </label>
+                        </div>
+                        <div class="relative">
+                            <input type="radio" id="${param.id}_abnormal" name="${param.id}" value="Abnormal" class="peer hidden radio-abnormal" required>
+                            <label for="${param.id}_abnormal" class="cursor-pointer border border-slate-300 text-slate-500 rounded px-2 py-1 text-[11px] font-semibold flex items-center gap-1 transition-all select-none">
+                                × Abnormal / 异常
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function checkTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}`;
+            
+            currentTimeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+
+            let open = false;
+            let currentWindow = null;
+            let nextWindow = null;
+
+            for (let i = 0; i < SCHEDULE_WINDOWS.length; i++) {
+                const win = SCHEDULE_WINDOWS[i];
+                if (timeStr >= win.start && timeStr <= win.end) {
+                    open = true;
+                    currentWindow = win;
+                    break;
+                }
+                if (timeStr < win.start && !nextWindow) {
+                    nextWindow = win;
+                }
+            }
+
+            if (!open && !nextWindow) {
+                nextWindow = SCHEDULE_WINDOWS[0]; // Besok
+            }
+
+            isWindowOpen = open;
+            updateUIBasedOnTime(open, currentWindow, nextWindow);
+        }
+
+        function updateUIBasedOnTime(open, currentWindow, nextWindow) {
+            if (isAdminUnlocked) open = true;
+
+            if (open) {
+                formOverlay.classList.add('opacity-0', 'pointer-events-none');
+                submitBtn.disabled = false;
+                
+                if (isAdminUnlocked) {
+                    timeBanner.className = "mb-6 rounded-xl shadow-sm border p-4 flex items-center transition-colors duration-300 bg-purple-50 border-purple-200";
+                    timeIcon.innerHTML = `<svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.092 2.019-.27 3.003m-4.5 5.093c-.4.075-.811.127-1.23.153a1 1 0 01-1.066-.991V14M16 11V7a4 4 0 00-8 0v4h8z"></path></svg>`;
+                    timeTitle.className = "text-sm font-bold text-purple-800";
+                    timeTitle.textContent = "Mode Admin Override Aktif / 管理员覆盖模式";
+                    timeDesc.className = "text-xs mt-1 text-purple-700";
+                    timeDesc.textContent = "Form telah dibuka paksa mengabaikan jadwal waktu.";
+                } else {
+                    timeBanner.className = "mb-6 rounded-xl shadow-sm border p-4 flex items-center transition-colors duration-300 bg-green-50 border-green-200";
+                    timeIcon.innerHTML = `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    timeTitle.className = "text-sm font-bold text-green-800";
+                    timeTitle.textContent = "Waktu Pemeriksaan Aktif / 检查时间已激活";
+                    timeDesc.className = "text-xs mt-1 text-green-700";
+                    timeDesc.textContent = `Jadwal saat ini / 当前时间段: ${currentWindow.start} - ${currentWindow.end}`;
+                }
+            } else {
+                formOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                submitBtn.disabled = true;
+
+                timeBanner.className = "mb-6 rounded-xl shadow-sm border p-4 flex items-center transition-colors duration-300 bg-red-50 border-red-200";
+                timeIcon.innerHTML = `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                timeTitle.className = "text-sm font-bold text-red-800";
+                timeTitle.textContent = "Di Luar Jam Pemeriksaan / 不在检查时间段";
+                timeDesc.className = "text-xs mt-1 text-red-700";
+                timeDesc.textContent = `Jadwal berikutnya / 下一个时间段: ${nextWindow.start} - ${nextWindow.end}`;
+            }
+        }
+
+        async function init() {
+            renderParameters();
+            
+            checkTime();
+            setInterval(checkTime, 1000);
+
+            try {
+                if (initialToken) await signInWithCustomToken(auth, initialToken);
+                else await signInAnonymously(auth);
+                
+                currentUser = auth.currentUser;
+                
+                const statusEl = document.getElementById('auth-status');
+                statusEl.innerHTML = 'Terhubung<br><span class="text-[10px]">已连接</span>';
+                statusEl.className = "text-xs font-medium bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full border border-emerald-300 text-center leading-tight";
+
+                fetchData();
+            } catch (error) {
+                console.error("Auth error", error);
+                Swal.fire('Koneksi Gagal / 连接失败', 'Tidak dapat terhubung ke database.', 'error');
+            }
+        }
+
+        function fetchData() {
+            if (!currentUser) return;
+            const path = collection(db, 'artifacts', appId, 'public', 'data', 'inspeksi_oli_kiln');
+            
+            // onSnapshot memantau data secara real-time
+            onSnapshot(path, (snapshot) => {
+                const fetchedData = [];
+                snapshot.forEach(doc => fetchedData.push({ id: doc.id, ...doc.data() }));
+                
+                // Simpan semua data
+                allRecordsData = fetchedData;
+                
+                // Render tabel berdasarkan tanggal yang dipilih di date-picker
+                filterDataByDate(datePicker.value);
+            }, (error) => {
+                console.error("Firestore error:", error);
+                Swal.fire('Error', 'Gagal memuat data / 加载数据失败.', 'error');
+            });
+        }
+
+        // Fungsi filter data berdasarkan tanggal terpilih
+        function filterDataByDate(dateString) {
+            if (!dateString) return;
+
+            const [year, month, day] = dateString.split('-');
+            const startOfDay = new Date(year, month - 1, day).getTime();
+            const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+            filteredData = allRecordsData
+                .filter(d => d.waktu_submit >= startOfDay && d.waktu_submit < endOfDay)
+                .sort((a, b) => b.waktu_submit - a.waktu_submit);
+
+            renderTable();
+        }
+
+        function renderTable() {
+            if (filteredData.length === 0) {
+                const colSpan = isAdminUnlocked ? "6" : "5";
+                tableBody.innerHTML = `<tr><td colspan="${colSpan}" class="py-12 text-center text-sm text-slate-500 italic bg-slate-50/50">Belum ada catatan pemeriksaan untuk tanggal ini.<br>该日期暂无检查记录。</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = filteredData.map(item => {
+                const time = new Date(item.waktu_submit).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                
+                let badgesHtml = '<div class="flex flex-wrap gap-1 max-w-[320px]">';
+                PARAMETERS.forEach(p => {
+                    const status = item.parameter[p.id];
+                    const isNormal = status === 'Normal';
+                    const color = isNormal ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200 font-bold';
+                    const icon = isNormal ? '√' : '×';
+                    const shortLabel = p.label.split(' (')[0]; 
+                    badgesHtml += `<span title="${p.label}: ${status}" class="px-1.5 py-0.5 text-[10px] rounded border ${color}">${icon} ${shortLabel}</span>`;
+                });
+                badgesHtml += '</div>';
+
+                const fotoHtml = item.fotoUrl 
+                    ? `<a href="${item.fotoUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-semibold bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Lihat / 查看</a>` 
+                    : `<span class="text-slate-400 text-xs italic">Tidak ada / 无</span>`;
+
+                // Render tombol edit dan hapus hanya jika mode admin aktif
+                const aksiBtnHtml = isAdminUnlocked 
+                    ? `<td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="window.editData('${item.id}')" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1 px-2 rounded flex items-center gap-1 transition-colors" title="Edit Parameter">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                Edit
+                            </button>
+                            <button onclick="window.hapusData('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded flex items-center gap-1 transition-colors" title="Hapus Data">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                Hapus
+                            </button>
+                        </div>
+                       </td>`
+                    : ``;
+
+                return `
+                    <tr class="hover:bg-blue-50/30 transition-colors">
+                        <td class="py-3 px-4 text-slate-800 font-medium">${time}</td>
+                        <td class="py-3 px-4">
+                            <div class="text-blue-700 font-bold text-xs mb-0.5">${escapeHtml(item.area || '-')}</div>
+                            <div class="text-slate-800 font-semibold text-xs mb-0.5">${escapeHtml(item.tim)}</div>
+                            <div class="text-slate-500 text-xs">${escapeHtml(item.petugas)}</div>
+                        </td>
+                        <td class="py-3 px-4">${badgesHtml}</td>
+                        <td class="py-3 px-4">${fotoHtml}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600 whitespace-normal max-w-xs leading-tight">
+                            ${item.keterangan ? escapeHtml(item.keterangan) : '-'}
+                        </td>
+                        ${aksiBtnHtml}
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // FUNGSI EDIT DATA (Hanya Admin)
+        // ==========================================
+        window.editData = async function(docId) {
+            if (!isAdminUnlocked) return;
+            
+            // Cari data berdasarkan ID
+            const record = allRecordsData.find(d => d.id === docId);
+            if (!record) return;
+
+            // Buat form HTML untuk SweetAlert
+            let formHtml = '<div class="text-left space-y-3 mt-4">';
+            PARAMETERS.forEach(p => {
+                const currentStatus = record.parameter[p.id] || 'Abnormal';
+                const isNormal = currentStatus === 'Normal';
+                const paramName = p.label.split(' (')[0];
+                
+                formHtml += `
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span class="text-xs font-semibold text-slate-700">${paramName}</span>
+                        <select id="edit_${p.id}" class="text-xs border border-slate-300 rounded p-1.5 focus:ring-blue-500 outline-none cursor-pointer">
+                            <option value="Normal" ${isNormal ? 'selected' : ''}>Normal</option>
+                            <option value="Abnormal" ${!isNormal ? 'selected' : ''}>Abnormal</option>
+                        </select>
+                    </div>
+                `;
+            });
+            formHtml += '</div>';
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Edit Status Parameter',
+                html: formHtml,
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb', // blue-600
+                cancelButtonColor: '#64748b', // slate-500
+                confirmButtonText: 'Simpan Perubahan',
+                cancelButtonText: 'Batal',
+                preConfirm: () => {
+                    const newParams = {};
+                    PARAMETERS.forEach(p => {
+                        newParams[p.id] = document.getElementById(`edit_${p.id}`).value;
+                    });
+                    return newParams;
+                }
+            });
+
+            if (formValues) {
+                try {
+                    // Update dokumen di Firestore
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspeksi_oli_kiln', docId);
+                    await updateDoc(docRef, { parameter: formValues });
+                    
+                    Swal.fire({
+                        title: 'Tersimpan!', 
+                        text: 'Parameter data berhasil diperbarui.', 
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    console.error("Error update data: ", error);
+                    Swal.fire('Gagal!', 'Terjadi kesalahan saat mengedit data.', 'error');
+                }
+            }
+        };
+
+        // ==========================================
+        // FUNGSI HAPUS DATA (Hanya Admin)
+        // ==========================================
+        window.hapusData = async function(docId) {
+            if (!isAdminUnlocked) return;
+
+            const result = await Swal.fire({
+                title: 'Hapus Data?',
+                text: "Data yang dihapus tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspeksi_oli_kiln', docId);
+                    await deleteDoc(docRef);
+                    Swal.fire({
+                        title: 'Terhapus!', 
+                        text: 'Data berhasil dihapus dari database.', 
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    console.error("Error menghapus data: ", error);
+                    Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
+                }
+            }
+        };
+
+        // ==========================================
+        // PROSES UPLOAD MENGGUNAKAN API PIHAK KETIGA (IMGBB)
+        // ==========================================
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentUser) return Swal.fire('Error', 'Belum terhubung ke database / 未连接数据库', 'error');
+            
+            checkTime();
+            if (!isWindowOpen && !isAdminUnlocked) {
+                return Swal.fire('Ditolak / 拒绝', 'Saat ini di luar jam pemeriksaan resmi / 当前不在检查时间段内', 'warning');
+            }
+
+            const file = fotoInput.files[0];
+            if (!file) return Swal.fire('Peringatan', 'Harap ambil foto bukti terlebih dahulu! / 请先拍摄凭证照片！', 'warning');
+
+            const originalBtn = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mengunggah Foto...`;
+
+            try {
+                // Upload Foto ke ImgBB
+                let fotoUrl = "";
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('name', 'Stasiun_Oli_' + document.getElementById('area').value + '_' + document.getElementById('shift').value);
+
+                const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const imgbbResult = await imgbbResponse.json();
+                
+                if (imgbbResult.success) {
+                    fotoUrl = imgbbResult.data.url; 
+                } else {
+                    throw new Error("Gagal mengunggah ke server gambar.");
+                }
+
+                // Simpan Data Teks ke Firebase Firestore
+                submitBtn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Menyimpan Data...`;
+
+                const payload = {
+                    userId: currentUser.uid,
+                    area: document.getElementById('area').value,
+                    tim: document.getElementById('shift').value,
+                    petugas: document.getElementById('petugas').value.trim(),
+                    waktu_submit: Date.now(),
+                    parameter: {},
+                    keterangan: document.getElementById('keterangan').value.trim(),
+                    fotoUrl: fotoUrl 
+                };
+
+                PARAMETERS.forEach(p => {
+                    const selected = document.querySelector(`input[name="${p.id}"]:checked`);
+                    payload.parameter[p.id] = selected ? selected.value : 'Abnormal';
+                });
+
+                const path = collection(db, 'artifacts', appId, 'public', 'data', 'inspeksi_oli_kiln');
+                await addDoc(path, payload);
+                
+                Swal.fire({
+                    title: 'Berhasil / 成功!',
+                    text: 'Catatan & foto berhasil disimpan.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                document.getElementById('keterangan').value = '';
+                fotoInput.value = '';
+                PARAMETERS.forEach(p => document.getElementById(`${p.id}_normal`).checked = true);
+                
+                // Kembalikan kalender ke hari ini agar petugas melihat datanya masuk
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                datePicker.value = `${yyyy}-${mm}-${dd}`;
+                filterDataByDate(datePicker.value);
+
+            } catch (error) {
+                console.error("Save error:", error);
+                Swal.fire('Gagal / 失败', 'Gagal menyimpan. Pastikan koneksi internet stabil.', 'error');
+            } finally {
+                checkTime(); 
+                if(submitBtn.disabled === false) { 
+                    submitBtn.innerHTML = originalBtn;
+                }
+            }
+        });
+
+        // Tombol Export akan mengunduh data berdasarkan tanggal yang sedang tampil di tabel
+        exportBtn.addEventListener('click', () => {
+            if (filteredData.length === 0) {
+                return Swal.fire('Info', 'Tidak ada data untuk tanggal ini. / 无数据可导出', 'info');
+            }
+            generateAndDownloadCSV(filteredData, datePicker.value);
+        });
+
+        function generateAndDownloadCSV(dataArray, dateLabel) {
+            let csv = 'Waktu(时间),Area(区域),Tim(班组),Petugas(人员),';
+            PARAMETERS.forEach(p => csv += `"${p.label}",`);
+            csv += 'Link Foto(照片链接),Keterangan(备注)\n';
+
+            dataArray.forEach(item => {
+                const t = new Date(item.waktu_submit).toLocaleTimeString('id-ID');
+                const safeKet = item.keterangan ? item.keterangan.replace(/"/g, '""').replace(/\n/g, ' ') : '';
+                const linkFoto = item.fotoUrl ? item.fotoUrl : 'Tidak Ada';
+                const areaStr = item.area ? item.area : '-';
+                
+                let row = `"${t}","${areaStr}","${item.tim}","${item.petugas}",`;
+                PARAMETERS.forEach(p => {
+                    row += `"${item.parameter[p.id]}",`;
+                });
+                row += `"${linkFoto}","${safeKet}"\n`;
+                csv += row;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Arsip_Inspeksi_Oli_Kiln_${dateLabel}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
