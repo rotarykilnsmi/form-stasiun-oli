@@ -15,6 +15,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        /* Animasi Teks Berjalan (Running Text) */
+@keyframes marquee-scroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee-scroll 18s linear infinite;
+}
+/* Otomatis berhenti saat kursor diarahkan / disentuh di layar HP */
+.marquee-wrapper:hover .animate-marquee {
+    animation-play-state: paused;
+}
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
@@ -45,7 +59,26 @@
     </header>
 
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-        
+        <!-- Papan Pengumuman Teks Berjalan / Running Text Notice Board -->
+<div id="notice-board" class="mb-6 bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-xl shadow-sm flex items-center justify-between gap-3 overflow-hidden">
+    <div class="flex items-center gap-2.5 flex-shrink-0 z-10 bg-amber-50 pr-2">
+        <svg class="w-5 h-5 text-amber-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.987 3.987 0 01-1.564-.317z"></path>
+        </svg>
+        <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">Info / 公告:</span>
+    </div>
+    
+    <!-- Area Teks Berjalan -->
+    <div class="marquee-wrapper flex-grow overflow-hidden relative">
+        <p id="notice-text" class="animate-marquee text-xs font-medium text-amber-800">
+            Perhatian: Jadwal pemeriksaan Shift B hari Jumat mengalami pergeseran 1 jam lebih awal. Harap seluruh petugas menyesuaikan. / 注意：周五B班检查时间提前1小时，请相关人员注意调整。
+        </p >
+    </div>
+
+    <button onclick="document.getElementById('notice-board').style.display='none'" class="text-amber-500 hover:text-amber-700 text-xs font-bold px-1.5 py-1 flex-shrink-0 z-10 bg-amber-50" title="Tutup">
+        ✕
+    </button>
+</div>
         <!-- Status Waktu Banner -->
         <div id="time-banner" class="mb-6 rounded-xl shadow-sm border p-4 flex items-center transition-colors duration-300 bg-white border-slate-200">
             <div id="time-icon" class="mr-3 flex-shrink-0">
